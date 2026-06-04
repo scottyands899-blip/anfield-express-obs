@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Anfield Express — OBS Graphics Package</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── RESET & BASE ──────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:       #C8102E;
+    --red-dark:  #8B1A1A;
+    --red-deep:  #5C0F1A;
+    --gold:      #D4A017;
+    --gold-light:#F0C040;
+    --white:     #FFFFFF;
+    --silver:    #C8C8C8;
+    --black:     #000000;
+    --dark:      #0D0D0D;
+    --dark2:     #1A0A0A;
+
+    --font-display: 'Oswald', sans-serif;
+    --font-body:    'Barlow Condensed', sans-serif;
+    --font-text:    'Barlow', sans-serif;
+
+    --ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── UTILITY ───────────────────────────────────────────────────────── */
+  .hidden { display: none !important; }
+
+  /* ── CONTROL PANEL (visible in browser, hidden in OBS via CSS trick) ── */
+  .control-panel {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #111;
+    padding: 10px 20px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    z-index: 9999;
+    border-bottom: 2px solid var(--red);
+    font-family: var(--font-text);
+    font-size: 13px;
+  }
+
+  .cp-label {
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: 2px;
+    font-size: 11px;
+    margin-right: 8px;
+  }
+
+  .cp-btn {
+    background: var(--dark2);
+    border: 1px solid #333;
+    color: var(--silver);
+    padding: 6px 14px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+
+  .cp-btn:hover { background: var(--red); border-color: var(--red); color: #fff; }
+  .cp-btn.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .cp-sep { width: 1px; height: 24px; background: #333; margin: 0 4px; }
+
+  .cp-input {
+    background: #222;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 5px 10px;
+    font-family: var(--font-text);
+    font-size: 12px;
+    border-radius: 3px;
+    width: 220px;
+  }
+
+  /* ── OBS CANVAS ────────────────────────────────────────────────────── */
+  #obs-canvas {
+    position: absolute;
+    top: 60px; left: 0;
+    width: 1920px;
+    height: 1020px;
+    pointer-events: none;
+  }
+
+  /* When loaded directly in OBS (no control panel needed) */
+  body.obs-mode #obs-canvas { top: 0; height: 1080px; }
+  body.obs-mode .control-panel { display: none; }
+
+  /* ── LOGO WATERMARK ────────────────────────────────────────────────── */
+  #logo-watermark {
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    opacity: 0;
+    transition: opacity 0.5s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #logo-watermark.show { opacity: 1; }
+
+  .logo-img {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));
+  }
+
+  .logo-text-block { display: flex; flex-direction: column; }
+
+  .logo-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 3px;
+    line-height: 1;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+
+  .logo-tagline {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+
+  /* ── LIVE BADGE ────────────────────────────────────────────────────── */
+  #live-badge {
+    position: absolute;
+    top: 36px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--red);
+    padding: 6px 16px 6px 12px;
+    clip-path: polygon(8px 0%, 100% 0%, 100% 100%, 0% 100%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  #live-badge.show { opacity: 1; }
+
+  .live-pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #fff;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .live-text {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 3px;
+  }
+
+  /* ── TICKER ────────────────────────────────────────────────────────── */
+  #ticker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    transform: translateY(100%);
+    transition: transform 0.5s var(--ease-snappy);
+  }
+
+  #ticker.show { transform: translateY(0); }
+
+  .ticker-brand {
+    background: var(--red-dark);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    flex-shrink: 0;
+    gap: 10px;
+    border-right: 3px solid var(--gold);
+    position: relative;
+    z-index: 2;
+  }
+
+  .ticker-brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  .ticker-brand-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  .ticker-track {
+    background: var(--red);
+    height: 100%;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-scroll {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    animation: ticker-move 35s linear infinite;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+    padding-left: 40px;
+  }
+
+  @keyframes ticker-move {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-sep { color: var(--gold); margin: 0 20px; font-size: 14px; }
+
+  .ticker-highlight { color: var(--gold-light); font-weight: 700; }
+
+  /* ── LOWER THIRD ───────────────────────────────────────────────────── */
+  #lower-third {
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+  }
+
+  .lt-container {
+    display: flex;
+    flex-direction: column;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.5s var(--ease-snappy);
+  }
+
+  .lt-container.show { clip-path: inset(0 0% 0 0); }
+
+  .lt-name-bar {
+    background: var(--red);
+    padding: 10px 28px 8px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .lt-accent-line {
+    width: 4px;
+    height: 28px;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .lt-name {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .lt-role-bar {
+    background: var(--dark);
+    padding: 6px 28px 6px 46px;
+    border-left: 4px solid var(--gold);
+  }
+
+  .lt-role {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--silver);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  /* ── BREAKING NEWS ─────────────────────────────────────────────────── */
+  #breaking-news {
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+    right: 0;
+    transform: translateY(120%);
+    transition: transform 0.6s var(--ease-snappy);
+  }
+
+  #breaking-news.show { transform: translateY(0); }
+
+  .bn-container {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .bn-tag {
+    background: var(--red-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    flex-shrink: 0;
+    gap: 4px;
+    border-right: 3px solid var(--gold);
+    min-width: 140px;
+  }
+
+  .bn-pulse-ring {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 1s ease-in-out infinite;
+    margin-bottom: 4px;
+  }
+
+  .bn-tag-text {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .bn-content {
+    background: var(--dark);
+    flex: 1;
+    padding: 12px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-top: 3px solid var(--red);
+    border-bottom: 3px solid var(--red);
+  }
+
+  .bn-headline {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+    line-height: 1.2;
+  }
+
+  .bn-headline span { color: var(--gold-light); }
+
+  .bn-sub {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--silver);
+    letter-spacing: 2px;
+  }
+
+  .bn-logo-end {
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .bn-logo-end img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  /* ── TRANSFER GRAPHIC ──────────────────────────────────────────────── */
+  #transfer-graphic {
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+    right: 0;
+    transform: translateY(120%);
+    transition: transform 0.6s var(--ease-snappy);
+  }
+
+  #transfer-graphic.show { transform: translateY(0); }
+
+  .tf-container {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .tf-tag {
+    background: var(--gold);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+
+  .tf-tag-main {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: 2px;
+  }
+
+  .tf-tag-sub {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: rgba(0,0,0,0.6);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .tf-content {
+    background: var(--dark);
+    flex: 1;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 3px solid var(--gold);
+    border-bottom: 3px solid var(--gold);
+  }
+
+  .tf-club {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .tf-club-badge {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .tf-club-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--silver);
+    letter-spacing: 1px;
+  }
+
+  .tf-player-centre {
+    text-align: center;
+    flex: 1;
+    padding: 0 20px;
+  }
+
+  .tf-player-name {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+
+  .tf-player-detail {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .tf-arrow {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--gold);
+    padding: 0 8px;
+  }
+
+  .tf-fee-end {
+    background: var(--red);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 24px;
+    flex-shrink: 0;
+    min-width: 140px;
+  }
+
+  .tf-fee-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+
+  .tf-fee-amount {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  /* ── MATCH RESULT ──────────────────────────────────────────────────── */
+  #match-result {
+    position: absolute;
+    top: 50%;
+    right: 60px;
+    transform: translateY(-50%) scale(0.8);
+    opacity: 0;
+    transition: all 0.5s var(--ease-bounce);
+  }
+
+  #match-result.show {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+
+  .mr-container {
+    background: var(--dark);
+    border: 2px solid var(--red);
+    width: 340px;
+    overflow: hidden;
+  }
+
+  .mr-header {
+    background: var(--red);
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mr-comp {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 2px;
+  }
+
+  .mr-status {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 10px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+
+  .mr-body {
+    padding: 20px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .mr-team { text-align: center; }
+
+  .mr-team-badge {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 auto 8px;
+  }
+
+  .mr-team-name {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  .mr-score-block { text-align: center; }
+
+  .mr-score {
+    font-family: var(--font-display);
+    font-size: 52px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 4px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mr-score-sep { color: var(--silver); font-size: 36px; }
+
+  .mr-time {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .mr-scorers {
+    background: #111;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-around;
+    gap: 8px;
+  }
+
+  .mr-scorer {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--silver);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .mr-scorer span { color: var(--gold); }
+
+  .mr-footer {
+    background: var(--red-dark);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mr-footer-logo {
+    width: 20px; height: 20px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+  }
+
+  .mr-footer-text {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 2px;
+  }
+
+  /* ── PLAYER PROFILE CARD ───────────────────────────────────────────── */
+  #player-card {
+    position: absolute;
+    top: 50%;
+    right: 60px;
+    transform: translateY(-50%) translateX(120%);
+    transition: transform 0.6s var(--ease-snappy);
+  }
+
+  #player-card.show { transform: translateY(-50%) translateX(0); }
+
+  .pc-container {
+    background: var(--dark);
+    border: 2px solid var(--red);
+    width: 300px;
+    overflow: hidden;
+  }
+
+  .pc-header {
+    background: var(--red);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .pc-header-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 3px;
+  }
+
+  .pc-number {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    line-height: 1;
+  }
+
+  .pc-body { padding: 16px; }
+
+  .pc-avatar {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    border: 2px solid var(--gold);
+    flex-shrink: 0;
+  }
+
+  .pc-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+
+  .pc-position {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 3px;
+    margin-top: 4px;
+    margin-bottom: 14px;
+  }
+
+  .pc-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  .pc-stat {
+    background: #111;
+    padding: 8px;
+    text-align: center;
+    border-top: 2px solid var(--red);
+  }
+
+  .pc-stat-num {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .pc-stat-label {
+    font-family: var(--font-body);
+    font-size: 9px;
+    color: var(--silver);
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+  }
+
+  /* ── SCORE BUG (top left persistent) ──────────────────────────────── */
+  #score-bug {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    transform: translateX(120%);
+    transition: transform 0.5s var(--ease-snappy);
+  }
+
+  #score-bug.show { transform: translateX(0); }
+
+  .sb-container {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(0,0,0,0.85);
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+  }
+
+  .sb-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  .sb-badge {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px;
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-display);
+  }
+
+  .sb-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+
+  .sb-score {
+    background: var(--red);
+    padding: 6px 12px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sb-time {
+    background: var(--dark);
+    padding: 6px 10px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    border-left: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ── STAT WIPE ─────────────────────────────────────────────────────── */
+  #stat-wipe {
+    position: absolute;
+    bottom: 62px;
+    left: 0;
+    right: 0;
+    transform: translateY(120%);
+    transition: transform 0.6s var(--ease-snappy);
+  }
+
+  #stat-wipe.show { transform: translateY(0); }
+
+  .sw-container {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .sw-label-block {
+    background: var(--red);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    min-width: 200px;
+    border-right: 3px solid var(--gold);
+  }
+
+  .sw-label {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+
+  .sw-content {
+    background: var(--dark);
+    flex: 1;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-top: 3px solid var(--red);
+    border-bottom: 3px solid var(--red);
+  }
+
+  .sw-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+  }
+
+  .sw-stat-value {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .sw-stat-value.gold { color: var(--gold-light); }
+
+  .sw-stat-key {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: var(--silver);
+    letter-spacing: 2px;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  .sw-divider {
+    width: 1px;
+    height: 36px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* ── GOAL FLASH ────────────────────────────────────────────────────── */
+  #goal-flash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  #goal-flash.show { opacity: 1; animation: goal-anim 3s forwards; }
+
+  @keyframes goal-anim {
+    0%   { opacity: 0; }
+    10%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .gf-content {
+    text-align: center;
+    animation: goal-scale 3s forwards;
+  }
+
+  @keyframes goal-scale {
+    0%   { transform: scale(0.6); }
+    15%  { transform: scale(1.05); }
+    25%  { transform: scale(1); }
+    80%  { transform: scale(1); }
+    100% { transform: scale(0.9); }
+  }
+
+  .gf-goal {
+    font-family: var(--font-display);
+    font-size: 120px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 8px;
+    line-height: 1;
+    text-shadow: 0 0 60px rgba(212,160,23,0.8), 0 4px 20px rgba(0,0,0,0.9);
+  }
+
+  .gf-scorer {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 4px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+    margin-top: -10px;
+  }
+
+  .gf-minute {
+    font-family: var(--font-body);
+    font-size: 20px;
+    color: var(--silver);
+    letter-spacing: 4px;
+    margin-top: 4px;
+  }
+
+  .gf-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(200,16,46,0.4) 0%, transparent 70%);
+    z-index: -1;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ── CONTROL PANEL ─────────────────────────────────────────────────── -->
+<div class="control-panel">
+  <span class="cp-label">ANFIELD EXPRESS OBS</span>
+  <div class="cp-sep"></div>
+
+  <span class="cp-label" style="font-size:10px">OVERLAYS</span>
+  <button class="cp-btn" onclick="toggle('logo-watermark')">Logo</button>
+  <button class="cp-btn" onclick="toggle('live-badge')">LIVE</button>
+  <button class="cp-btn" onclick="toggle('ticker')">Ticker</button>
+  <div class="cp-sep"></div>
+
+  <span class="cp-label" style="font-size:10px">LOWER THIRDS</span>
+  <button class="cp-btn" onclick="toggle('lower-third')">Lower Third</button>
+  <button class="cp-btn" onclick="toggle('breaking-news')">Breaking News</button>
+  <button class="cp-btn" onclick="toggle('transfer-graphic')">Transfer</button>
+  <button class="cp-btn" onclick="toggle('stat-wipe')">Stats</button>
+  <div class="cp-sep"></div>
+
+  <span class="cp-label" style="font-size:10px">PANELS</span>
+  <button class="cp-btn" onclick="toggle('match-result')">Result</button>
+  <button class="cp-btn" onclick="toggle('player-card')">Player Card</button>
+  <button class="cp-btn" onclick="toggle('score-bug')">Score Bug</button>
+  <div class="cp-sep"></div>
+
+  <span class="cp-label" style="font-size:10px">FX</span>
+  <button class="cp-btn" onclick="triggerGoal()">GOAL!</button>
+  <div class="cp-sep"></div>
+
+  <input class="cp-input" id="lt-name-input" placeholder="Lower third name..." oninput="updateLT()">
+  <input class="cp-input" id="lt-role-input" placeholder="Role / context..." oninput="updateLT()" style="width:180px">
+  <div class="cp-sep"></div>
+  <input class="cp-input" id="bn-input" placeholder="Breaking news headline..." oninput="updateBN()" style="width:280px">
+</div>
+
+<!-- ── OBS CANVAS ─────────────────────────────────────────────────────── -->
+<div id="obs-canvas">
+
+  <!-- Logo watermark -->
+  <div id="logo-watermark">
+    <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.6);padding:8px 14px 8px 8px;backdrop-filter:blur(4px)">
+      <div style="width:50px;height:50px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:700;color:#fff;letter-spacing:1px;flex-shrink:0">AE</div>
+      <div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:#fff;letter-spacing:3px;line-height:1">ANFIELD</div>
+        <div style="font-family:var(--font-body);font-size:10px;color:var(--gold);letter-spacing:4px">EXPRESS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live badge -->
+  <div id="live-badge">
+    <div class="live-pulse"></div>
+    <div class="live-text">LIVE</div>
+  </div>
+
+  <!-- Score bug (top right during match) -->
+  <div id="score-bug">
+    <div class="sb-container">
+      <div class="sb-team">
+        <div class="sb-badge" style="background:var(--red)">LFC</div>
+        <div class="sb-name">LIVERPOOL</div>
+      </div>
+      <div class="sb-score">
+        <span id="sb-home">2</span>
+        <span style="color:rgba(255,255,255,0.4);font-size:14px">–</span>
+        <span id="sb-away">1</span>
+      </div>
+      <div class="sb-team">
+        <div class="sb-badge" style="background:#DB0007">MUN</div>
+        <div class="sb-name">MAN UTD</div>
+      </div>
+      <div class="sb-time" id="sb-time">67'</div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div id="ticker">
+    <div class="ticker-brand">
+      <div style="width:26px;height:26px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:9px;font-weight:700;color:var(--dark);flex-shrink:0">AE</div>
+      <div class="ticker-brand-name">ANFIELD<br>EXPRESS</div>
+    </div>
+    <div class="ticker-track">
+      <div class="ticker-scroll" id="ticker-text">
+        <span class="ticker-highlight">BREAKING:</span>&nbsp;Liverpool close in on summer signing &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Slot plots squad overhaul ahead of new season &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        <span class="ticker-highlight">EXCLUSIVE:</span>&nbsp;Salah contract talks in final stages &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Premier League fixtures released Thursday &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Liverpool Europa League draw confirmed &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        <span class="ticker-highlight">BREAKING:</span>&nbsp;Liverpool close in on summer signing &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Slot plots squad overhaul ahead of new season &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        <span class="ticker-highlight">EXCLUSIVE:</span>&nbsp;Salah contract talks in final stages &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Premier League fixtures released Thursday &nbsp;<span class="ticker-sep">★</span>&nbsp;
+        Liverpool Europa League draw confirmed &nbsp;<span class="ticker-sep">★</span>&nbsp;
+      </div>
+    </div>
+  </div>
+
+  <!-- Lower third -->
+  <div id="lower-third">
+    <div class="lt-container" id="lt-inner">
+      <div class="lt-name-bar">
+        <div class="lt-accent-line"></div>
+        <div class="lt-name" id="lt-name-display">PRESENTER NAME</div>
+      </div>
+      <div class="lt-role-bar">
+        <div class="lt-role" id="lt-role-display">ANFIELD EXPRESS · LIVE NEWS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breaking news -->
+  <div id="breaking-news">
+    <div class="bn-container">
+      <div class="bn-tag">
+        <div class="bn-pulse-ring"></div>
+        <div class="bn-tag-text">BREAKING<br>NEWS</div>
+      </div>
+      <div class="bn-content">
+        <div class="bn-headline" id="bn-headline-display">Liverpool <span>agree £65m deal</span> for new midfielder</div>
+        <div class="bn-sub">ANFIELD EXPRESS EXCLUSIVE · CONFIRMED</div>
+      </div>
+      <div class="bn-logo-end">
+        <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;font-weight:700;color:#fff">AE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transfer graphic -->
+  <div id="transfer-graphic">
+    <div class="tf-container">
+      <div class="tf-tag">
+        <div class="tf-tag-main">TRANSFER</div>
+        <div class="tf-tag-sub">UPDATE</div>
+      </div>
+      <div class="tf-content">
+        <div class="tf-club">
+          <div class="tf-club-badge" style="background:#0057B8">BVB</div>
+          <div class="tf-club-name">DORTMUND</div>
+        </div>
+        <div class="tf-arrow">→</div>
+        <div class="tf-player-centre">
+          <div class="tf-player-name">F. WIRTZ</div>
+          <div class="tf-player-detail">ATTACKING MID · GERMANY</div>
+        </div>
+        <div class="tf-arrow">→</div>
+        <div class="tf-club">
+          <div class="tf-club-badge" style="background:var(--red)">LFC</div>
+          <div class="tf-club-name">LIVERPOOL</div>
+        </div>
+      </div>
+      <div class="tf-fee-end">
+        <div class="tf-fee-label">REPORTED FEE</div>
+        <div class="tf-fee-amount">£100M</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match result panel -->
+  <div id="match-result">
+    <div class="mr-container">
+      <div class="mr-header">
+        <span class="mr-comp">PREMIER LEAGUE · GW38</span>
+        <span class="mr-status">FULL TIME</span>
+      </div>
+      <div class="mr-body">
+        <div class="mr-team">
+          <div class="mr-team-badge" style="background:var(--red)">LFC</div>
+          <div class="mr-team-name">LIVERPOOL</div>
+        </div>
+        <div class="mr-score-block">
+          <div class="mr-score">
+            <span>3</span>
+            <span class="mr-score-sep">–</span>
+            <span>1</span>
+          </div>
+          <div class="mr-time">90+4'</div>
+        </div>
+        <div class="mr-team">
+          <div class="mr-team-badge" style="background:#DB0007">MUN</div>
+          <div class="mr-team-name">MAN UTD</div>
+        </div>
+      </div>
+      <div class="mr-scorers">
+        <div class="mr-scorer">SALAH <span>12'</span></div>
+        <div class="mr-scorer">DÍAZ <span>34'</span></div>
+        <div class="mr-scorer">NÚÑEZ <span>78'</span></div>
+      </div>
+      <div class="mr-footer">
+        <div style="width:20px;height:20px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:7px;font-weight:700;color:#fff">AE</div>
+        <span class="mr-footer-text">ANFIELD EXPRESS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player profile card -->
+  <div id="player-card">
+    <div class="pc-container">
+      <div class="pc-header">
+        <span class="pc-header-title">PLAYER PROFILE</span>
+        <span class="pc-number">11</span>
+      </div>
+      <div class="pc-body">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+          <div class="pc-avatar">MS</div>
+          <div>
+            <div class="pc-name">MOHAMED<br>SALAH</div>
+            <div class="pc-position">RIGHT FORWARD · EGYPT</div>
+          </div>
+        </div>
+        <div class="pc-stats">
+          <div class="pc-stat"><div class="pc-stat-num">26</div><div class="pc-stat-label">GOALS</div></div>
+          <div class="pc-stat"><div class="pc-stat-num">12</div><div class="pc-stat-label">ASSISTS</div></div>
+          <div class="pc-stat"><div class="pc-stat-num">38</div><div class="pc-stat-label">APPS</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat wipe -->
+  <div id="stat-wipe">
+    <div class="sw-container">
+      <div class="sw-label-block">
+        <div class="sw-label">MATCH STATS</div>
+      </div>
+      <div class="sw-content">
+        <div class="sw-stat-item"><div class="sw-stat-value gold">68%</div><div class="sw-stat-key">POSSESSION</div></div>
+        <div class="sw-divider"></div>
+        <div class="sw-stat-item"><div class="sw-stat-value">18</div><div class="sw-stat-key">SHOTS</div></div>
+        <div class="sw-divider"></div>
+        <div class="sw-stat-item"><div class="sw-stat-value gold">7</div><div class="sw-stat-key">ON TARGET</div></div>
+        <div class="sw-divider"></div>
+        <div class="sw-stat-item"><div class="sw-stat-value">4</div><div class="sw-stat-key">CORNERS</div></div>
+        <div class="sw-divider"></div>
+        <div class="sw-stat-item"><div class="sw-stat-value">1</div><div class="sw-stat-key">YELLOW</div></div>
+        <div class="sw-divider"></div>
+        <div class="sw-stat-item"><div class="sw-stat-value gold">87%</div><div class="sw-stat-key">PASS ACC</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal flash -->
+  <div id="goal-flash">
+    <div class="gf-bg"></div>
+    <div class="gf-content">
+      <div class="gf-goal">GOAL!</div>
+      <div class="gf-scorer" id="gf-scorer-name">SALAH</div>
+      <div class="gf-minute" id="gf-minute">45+2' · PREMIER LEAGUE</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('show');
+    const btn = event.target;
+    btn.classList.toggle('active');
+  }
+
+  function updateLT() {
+    const name = document.getElementById('lt-name-input').value;
+    const role = document.getElementById('lt-role-input').value;
+    if (name) document.getElementById('lt-name-display').textContent = name.toUpperCase();
+    if (role) document.getElementById('lt-role-display').textContent = role.toUpperCase();
+  }
+
+  function updateBN() {
+    const text = document.getElementById('bn-input').value;
+    if (text) document.getElementById('bn-headline-display').textContent = text;
+  }
+
+  function triggerGoal() {
+    const el = document.getElementById('goal-flash');
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // URL param mode for OBS (load with ?obs=true to hide controls)
+  if (new URLSearchParams(window.location.search).get('obs') === 'true') {
+    document.body.classList.add('obs-mode');
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    const map = {
+      'l': 'logo-watermark',
+      'v': 'live-badge',
+      't': 'ticker',
+      'n': 'lower-third',
+      'b': 'breaking-news',
+      'x': 'transfer-graphic',
+      'r': 'match-result',
+      'p': 'player-card',
+      's': 'score-bug',
+      'm': 'stat-wipe',
+    };
+    if (map[e.key]) {
+      document.getElementById(map[e.key]).classList.toggle('show');
+    }
+    if (e.key === 'g') triggerGoal();
+  });
+</script>
+</body>
+</html>
