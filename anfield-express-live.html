@@ -6,429 +6,564 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#C8102E;--red-dark:#8B1A1A;--gold:#D4A017;--gold-light:#F0C040;--silver:#C8C8C8;--dark:#0D0D0D;--font-d:'Oswald',sans-serif;--font-b:'Barlow Condensed',sans-serif;--font-t:'Barlow',sans-serif}
-html,body{width:1920px;height:1080px;overflow:hidden;background:transparent;font-family:var(--font-b);-webkit-font-smoothing:antialiased}
+:root{
+  --red:#C8102E;--red-dark:#8B1A1A;--gold:#D4A017;--gold-light:#F0C040;
+  --silver:#C8C8C8;--dark:#0D0D0D;--darker:#050505;
+  --font-d:'Oswald',sans-serif;--font-b:'Barlow Condensed',sans-serif;--font-t:'Barlow',sans-serif
+}
+html,body{width:1920px;height:1080px;overflow:hidden;background:transparent;-webkit-font-smoothing:antialiased}
 
-/* CONTROL PANEL */
-.cp{position:fixed;top:0;left:0;right:0;background:#0a0a0a;padding:6px 12px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;z-index:9999;border-bottom:2px solid var(--red);font-family:var(--font-t);font-size:10px}
-.cpl{color:var(--gold);font-weight:600;letter-spacing:2px;font-size:9px;margin-right:2px}
-.cpb{background:#1a1a1a;border:1px solid #333;color:var(--silver);padding:3px 8px;font-family:var(--font-b);font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:3px;transition:all 0.2s;white-space:nowrap}
+/* ── CONTROL PANEL ── */
+.cp{position:fixed;top:0;left:0;right:0;background:#080808;padding:5px 10px;display:flex;gap:4px;flex-wrap:nowrap;align-items:center;z-index:9999;border-bottom:2px solid var(--red);overflow-x:auto}
+.cpl{color:var(--gold);font-weight:600;letter-spacing:2px;font-size:9px;white-space:nowrap;margin-right:2px;font-family:var(--font-t)}
+.cpb{background:#1a1a1a;border:1px solid #333;color:var(--silver);padding:3px 8px;font-family:var(--font-b);font-size:10px;letter-spacing:1px;cursor:pointer;border-radius:3px;transition:all 0.2s;white-space:nowrap;flex-shrink:0}
 .cpb:hover,.cpb.act{background:var(--red);border-color:var(--red);color:#fff}
-.cpb.live{background:#003300;border-color:#006600;color:#00ff00}
-.cpb.live:hover{background:#006600}
-.cps{width:1px;height:18px;background:#333;margin:0 2px;flex-shrink:0}
-.cpi{background:#1a1a1a;border:1px solid #333;color:#fff;padding:3px 6px;font-family:var(--font-t);font-size:10px;border-radius:3px}
+.cpb.live-btn{background:#002200;border-color:#005500;color:#00ee00}
+.cpb.live-btn:hover{background:#005500}
+.cps{width:1px;height:18px;background:#333;margin:0 3px;flex-shrink:0}
+.cpi{background:#1a1a1a;border:1px solid #333;color:#fff;padding:3px 7px;font-family:var(--font-t);font-size:10px;border-radius:3px;flex-shrink:0}
 .sdot{width:6px;height:6px;border-radius:50%;background:#555;display:inline-block;margin-right:3px}
-.sdot.ok{background:#00cc00;animation:bl 2s infinite}
+.sdot.ok{background:#00cc00;animation:blink 2s infinite}
 .sdot.err{background:#cc0000}
-@keyframes bl{0%,100%{opacity:1}50%{opacity:0.4}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-/* CANVAS */
-#canvas{position:absolute;top:44px;left:0;width:1920px;height:1036px;pointer-events:none}
-body.obs #canvas{top:0;height:1080px}
-body.obs .cp{display:none}
+/* ── MAIN CANVAS ── */
+#canvas{position:absolute;top:36px;left:0;width:1920px;height:1044px;pointer-events:none}
+body.obs-mode #canvas{top:0;height:1080px}
+body.obs-mode .cp{display:none}
 
-/* LOGO - TOP LEFT */
-#logo{position:absolute;top:20px;left:30px;opacity:0;transition:opacity 0.5s}
+/* ══════════════════════════════════════════
+   SKY SPORTS NEWS LAYOUT
+   Left: 0–1380px  (presenter area)
+   Right: 1380–1920px (panels, 540px wide)
+   Bottom ticker: full width, 52px
+   Nav bar: full width, 36px
+   ══════════════════════════════════════════ */
+
+/* ── TOP BAR ── */
+#topbar{
+  position:absolute;top:0;left:0;right:0;height:56px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.85) 0%,transparent 100%);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+}
+
+/* AE LOGO */
+#logo{
+  display:flex;align-items:center;gap:8px;
+  background:var(--red);padding:6px 14px 6px 8px;
+  opacity:0;transition:opacity 0.4s;
+}
 #logo.show{opacity:1}
-.logo-box{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.7);padding:6px 12px 6px 8px;border-left:3px solid var(--red)}
-.logo-c{width:38px;height:38px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;flex-shrink:0;border:2px solid var(--gold)}
-.logo-main{font-family:var(--font-d);font-size:14px;font-weight:700;color:#fff;letter-spacing:3px;line-height:1}
-.logo-sub{font-family:var(--font-b);font-size:9px;color:var(--gold);letter-spacing:4px}
+.logo-c{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;border:1.5px solid rgba(255,255,255,0.4)}
+.logo-main{font-family:var(--font-d);font-size:16px;font-weight:700;color:#fff;letter-spacing:3px;line-height:1}
+.logo-sub{font-family:var(--font-b);font-size:9px;color:rgba(255,255,255,0.7);letter-spacing:4px}
 
-/* LIVE BADGE - TOP RIGHT */
-#livebadge{position:absolute;top:24px;right:30px;opacity:0;transition:opacity 0.4s;display:flex;align-items:center;gap:6px;background:var(--red);padding:5px 14px 5px 10px;clip-path:polygon(8px 0%,100% 0%,100% 100%,0% 100%)}
+/* LIVE BADGE */
+#livebadge{
+  display:flex;align-items:center;gap:7px;
+  background:var(--red);padding:7px 18px 7px 12px;
+  clip-path:polygon(10px 0%,100% 0%,100% 100%,0% 100%);
+  opacity:0;transition:opacity 0.4s;
+}
 #livebadge.show{opacity:1}
-.ldot{width:7px;height:7px;border-radius:50%;background:#fff;animation:bl 1.2s infinite}
-.ltxt{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;letter-spacing:3px}
+.ldot{width:8px;height:8px;border-radius:50%;background:#fff;animation:blink 1.2s infinite}
+.ltxt{font-family:var(--font-d);font-size:16px;font-weight:700;color:#fff;letter-spacing:4px}
 
-/* SCORE BUG - TOP RIGHT (below live badge) */
-#sbug{position:absolute;top:70px;right:30px;transform:translateX(120%);transition:transform 0.5s}
+/* ── RIGHT PANEL AREA (Sky Sports style stacked panels) ── */
+#right-panels{
+  position:absolute;
+  top:0;right:0;
+  width:540px;
+  height:944px; /* above ticker */
+  background:rgba(5,0,10,0.92);
+  border-left:3px solid var(--red);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+.rp-header{
+  background:var(--red);
+  padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.rp-title{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;letter-spacing:2px}
+.rp-sub{font-family:var(--font-b);font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:1px}
+
+/* SCORE PANEL */
+#score-panel{flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);transform:translateX(100%);transition:transform 0.5s}
+#score-panel.show{transform:translateX(0)}
+.sp-body{padding:14px 16px;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.sp-team{text-align:center}
+.sp-badge{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;margin:0 auto 6px}
+.sp-name{font-family:var(--font-b);font-size:13px;font-weight:600;color:#fff}
+.sp-score-block{text-align:center}
+.sp-score{font-family:var(--font-d);font-size:46px;font-weight:700;color:#fff;letter-spacing:4px;line-height:1;display:flex;align-items:center;gap:4px}
+.sp-sep{color:var(--silver);font-size:30px}
+.sp-time{font-family:var(--font-b);font-size:11px;color:var(--gold);letter-spacing:2px;margin-top:3px}
+.sp-scorers{background:rgba(255,255,255,0.04);padding:6px 16px;display:flex;justify-content:center;gap:16px}
+.sp-scorer{font-family:var(--font-b);font-size:11px;color:var(--silver)}
+.sp-scorer span{color:var(--gold)}
+
+/* TABLE PANEL */
+#table-panel{flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.08);transform:translateX(100%);transition:transform 0.5s 0.05s}
+#table-panel.show{transform:translateX(0)}
+.tp-row{display:grid;grid-template-columns:22px 1fr 26px 26px 26px 32px;gap:2px;align-items:center;padding:5px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:var(--font-b);font-size:11px;color:var(--silver)}
+.tp-row.lfc{background:rgba(200,16,46,0.2);color:#fff}
+.tp-row.hdr{background:rgba(0,0,0,0.3);color:var(--gold);font-size:9px;letter-spacing:1px;padding:4px 14px}
+.tp-pos{color:var(--gold);font-weight:700;font-family:var(--font-d);font-size:12px}
+.tp-team{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tp-pts{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;text-align:right}
+
+/* FIXTURES PANEL */
+#fixtures-panel{flex:1;transform:translateX(100%);transition:transform 0.5s 0.1s;overflow:hidden}
+#fixtures-panel.show{transform:translateX(0)}
+.fp-match{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.fp-match.next{background:rgba(200,16,46,0.12);border-left:3px solid var(--gold)}
+.fp-teams{font-family:var(--font-b);font-size:12px;color:#fff;font-weight:600}
+.fp-teams span{color:var(--silver);font-weight:400}
+.fp-info{text-align:right}
+.fp-date{font-family:var(--font-b);font-size:10px;color:var(--gold);letter-spacing:1px}
+.fp-comp{font-family:var(--font-b);font-size:9px;color:var(--silver)}
+
+/* SCORE BUG (small, top of right panel) */
+#sbug{
+  position:absolute;top:64px;right:544px;
+  transform:translateX(120%);transition:transform 0.5s;
+}
 #sbug.show{transform:translateX(0)}
-.sbwrap{display:flex;align-items:center;background:rgba(0,0,0,0.88);border:1px solid rgba(255,255,255,0.1);overflow:hidden}
-.sbteam{display:flex;align-items:center;gap:6px;padding:5px 10px}
-.sbbadge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:700;color:#fff;font-family:var(--font-d);flex-shrink:0}
-.sbname{font-family:var(--font-d);font-size:12px;font-weight:700;color:#fff;letter-spacing:1px}
-.sbscore{background:var(--red);padding:5px 10px;font-family:var(--font-d);font-size:16px;font-weight:700;color:#fff;letter-spacing:4px;display:flex;align-items:center;gap:3px}
-.sbtime{background:var(--dark);padding:5px 7px;font-family:var(--font-b);font-size:10px;color:var(--gold);letter-spacing:1px}
+.sb-wrap{display:flex;align-items:center;background:rgba(0,0,0,0.9);border:1px solid rgba(255,255,255,0.1);overflow:hidden}
+.sb-team{display:flex;align-items:center;gap:5px;padding:5px 10px}
+.sb-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:5px;font-weight:700;color:#fff;font-family:var(--font-d)}
+.sb-name{font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;letter-spacing:1px}
+.sb-score{background:var(--red);padding:5px 10px;font-family:var(--font-d);font-size:15px;font-weight:700;color:#fff;letter-spacing:4px;display:flex;align-items:center;gap:2px}
+.sb-time{background:var(--dark);padding:5px 7px;font-family:var(--font-b);font-size:9px;color:var(--gold);letter-spacing:1px}
 
-/* STANDINGS - RIGHT SIDE TOP */
-#sp{position:absolute;top:130px;right:30px;transform:translateX(120%);transition:transform 0.6s}
-#sp.show{transform:translateX(0)}
-.spw{background:rgba(10,10,10,0.92);border:1.5px solid var(--red);width:320px;overflow:hidden}
-.sph{background:var(--red);padding:7px 12px;display:flex;justify-content:space-between;align-items:center}
-.spti{font-family:var(--font-d);font-size:12px;font-weight:700;color:#fff;letter-spacing:2px}
-.spr{display:grid;grid-template-columns:22px 1fr 26px 26px 26px 30px;gap:3px;align-items:center;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-family:var(--font-b);font-size:11px;color:var(--silver)}
-.spr.lfc{background:rgba(200,16,46,0.25);color:#fff}
-.spr.hrw{background:#111;color:var(--gold);font-size:9px;letter-spacing:1px;padding:4px 10px}
-.sppos{color:var(--gold);font-weight:700;font-family:var(--font-d);font-size:12px}
-.spteam{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sppts{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;text-align:right}
+/* ── LOWER THIRD ── */
+#lt{position:absolute;bottom:96px;left:0}
+.lt-wrap{clip-path:inset(0 100% 0 0);transition:clip-path 0.5s}
+.lt-wrap.show{clip-path:inset(0 0% 0 0)}
+.lt-top{background:var(--red);padding:9px 28px 8px;display:flex;align-items:center;gap:12px}
+.lt-acc{width:4px;height:26px;background:var(--gold);flex-shrink:0}
+.lt-name{font-family:var(--font-d);font-size:28px;font-weight:700;color:#fff;letter-spacing:2px;line-height:1}
+.lt-bot{background:var(--dark);padding:6px 28px 6px 44px;border-left:4px solid var(--gold)}
+.lt-role{font-family:var(--font-b);font-size:13px;color:var(--silver);letter-spacing:3px;text-transform:uppercase}
 
-/* FIXTURES - RIGHT SIDE BELOW TABLE */
-#fp{position:absolute;top:130px;right:30px;transform:translateX(120%);transition:transform 0.6s}
-#fp.show{transform:translateX(0)}
-.fpw{background:rgba(10,10,10,0.92);border:1.5px solid var(--red);width:320px;overflow:hidden}
-.fph{background:var(--red);padding:7px 12px}
-.fpht{font-family:var(--font-d);font-size:12px;font-weight:700;color:#fff;letter-spacing:2px}
-.fpm{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.fpm.next{background:rgba(200,16,46,0.15);border-left:3px solid var(--gold)}
-.fpts{font-family:var(--font-b);font-size:12px;color:#fff;font-weight:600}
-.fpts span{color:var(--silver);font-weight:400}
-.fpdate{font-family:var(--font-b);font-size:10px;color:var(--gold);letter-spacing:1px;text-align:right}
-.fpcomp{font-family:var(--font-b);font-size:9px;color:var(--silver);text-align:right}
-
-/* LIVE SCORE PANEL - CENTRE RIGHT */
-#lsp{position:absolute;top:130px;right:30px;transform:translateX(120%);transition:transform 0.6s}
-#lsp.show{transform:translateX(0)}
-.lspw{background:rgba(10,10,10,0.92);border:1.5px solid var(--red);width:320px;overflow:hidden}
-.lsph{background:var(--red);padding:7px 12px;display:flex;justify-content:space-between;align-items:center}
-.lspc{font-family:var(--font-b);font-size:10px;color:rgba(255,255,255,0.8);letter-spacing:2px}
-.lsps{background:rgba(0,0,0,0.3);padding:2px 8px;font-family:var(--font-d);font-size:10px;font-weight:700;color:#fff;letter-spacing:2px}
-.lspb{padding:14px 12px;display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
-.lspt{text-align:center}
-.lspbadge{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:10px;font-weight:700;color:#fff;margin:0 auto 6px}
-.lsptn{font-family:var(--font-b);font-size:12px;font-weight:600;color:#fff}
-.lspsb{text-align:center}
-.lspscore{font-family:var(--font-d);font-size:44px;font-weight:700;color:#fff;letter-spacing:4px;line-height:1;display:flex;align-items:center;gap:3px}
-.lspss{color:var(--silver);font-size:30px}
-.lsptime{font-family:var(--font-b);font-size:11px;color:var(--gold);letter-spacing:2px;margin-top:3px}
-.lspsc{background:#111;padding:6px 12px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:3px}
-.lspscs{font-family:var(--font-b);font-size:10px;color:var(--silver)}
-.lspscs span{color:var(--gold)}
-.lspf{background:var(--red-dark);padding:4px 12px;text-align:center;font-family:var(--font-b);font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:2px}
-
-/* TICKER - BOTTOM */
-#ticker{position:absolute;bottom:0;left:0;right:0;height:42px;display:flex;align-items:center;transform:translateY(100%);transition:transform 0.5s}
-#ticker.show{transform:translateY(0)}
-.tbrand{background:var(--red-dark);height:100%;display:flex;align-items:center;padding:0 14px;flex-shrink:0;gap:6px;border-right:3px solid var(--gold)}
-.tae{width:20px;height:20px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:8px;font-weight:700;color:var(--dark);flex-shrink:0}
-.tname{font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;letter-spacing:2px;line-height:1.1}
-.ttrack{background:var(--red);height:100%;flex:1;overflow:hidden;display:flex;align-items:center}
-.tscroll{display:flex;align-items:center;white-space:nowrap;font-family:var(--font-b);font-size:14px;font-weight:600;color:#fff;letter-spacing:0.5px;padding-left:30px;animation:tmove 40s linear infinite}
-@keyframes tmove{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.ts{color:var(--gold);margin:0 14px}
-.th{color:var(--gold-light);font-weight:700}
-
-/* LOWER THIRD - BOTTOM LEFT */
-#lt{position:absolute;bottom:50px;left:0}
-.ltwrap{clip-path:inset(0 100% 0 0);transition:clip-path 0.5s}
-.ltwrap.show{clip-path:inset(0 0% 0 0)}
-.lttop{background:var(--red);padding:8px 24px 7px;display:flex;align-items:center;gap:10px}
-.ltacc{width:3px;height:22px;background:var(--gold);flex-shrink:0}
-.ltname{font-family:var(--font-d);font-size:24px;font-weight:700;color:#fff;letter-spacing:2px;line-height:1}
-.ltbot{background:var(--dark);padding:5px 24px 5px 37px;border-left:3px solid var(--gold)}
-.ltrole{font-family:var(--font-b);font-size:12px;font-weight:500;color:var(--silver);letter-spacing:3px;text-transform:uppercase}
-
-/* BREAKING NEWS - BOTTOM */
-#bn{position:absolute;bottom:50px;left:0;right:0;transform:translateY(120%);transition:transform 0.6s}
+/* ── BREAKING NEWS ── */
+#bn{position:absolute;bottom:96px;left:0;width:1380px;transform:translateY(120%);transition:transform 0.6s}
 #bn.show{transform:translateY(0)}
-.bnwrap{display:flex;align-items:stretch}
-.bntag{background:var(--red-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 14px;flex-shrink:0;gap:3px;border-right:3px solid var(--gold);min-width:120px}
-.bnring{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:bl 1s infinite;margin-bottom:3px}
-.bntxt{font-family:var(--font-d);font-size:11px;font-weight:700;color:#fff;letter-spacing:2px;text-align:center;line-height:1.2}
-.bnbody{background:var(--dark);flex:1;padding:10px 20px;display:flex;flex-direction:column;justify-content:center;gap:3px;border-top:3px solid var(--red);border-bottom:3px solid var(--red)}
-.bnhl{font-family:var(--font-d);font-size:22px;font-weight:700;color:#fff;letter-spacing:1px;line-height:1.2}
-.bnhl span{color:var(--gold-light)}
-.bnsrc{font-family:var(--font-b);font-size:11px;color:var(--silver);letter-spacing:2px}
-.bnend{background:var(--red);display:flex;align-items:center;padding:0 14px;flex-shrink:0}
-.bnae{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:10px;font-weight:700;color:#fff}
+.bn-wrap{display:flex;align-items:stretch}
+.bn-tag{background:var(--red-dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 18px;flex-shrink:0;gap:4px;border-right:3px solid var(--gold);min-width:130px}
+.bn-ring{width:10px;height:10px;border-radius:50%;background:var(--gold);animation:blink 1s infinite;margin-bottom:3px}
+.bn-tag-txt{font-family:var(--font-d);font-size:12px;font-weight:700;color:#fff;letter-spacing:2px;text-align:center;line-height:1.2}
+.bn-body{background:var(--dark);flex:1;padding:12px 24px;display:flex;flex-direction:column;justify-content:center;gap:4px;border-top:3px solid var(--red);border-bottom:3px solid var(--red)}
+.bn-hl{font-family:var(--font-d);font-size:26px;font-weight:700;color:#fff;letter-spacing:1px;line-height:1.2}
+.bn-hl span{color:var(--gold-light)}
+.bn-src{font-family:var(--font-b);font-size:12px;color:var(--silver);letter-spacing:2px}
+.bn-end{background:var(--red);display:flex;align-items:center;padding:0 18px;flex-shrink:0}
+.bn-ae{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:12px;font-weight:700;color:#fff}
 
-/* TRANSFER - BOTTOM */
-#tf{position:absolute;bottom:50px;left:0;right:0;transform:translateY(120%);transition:transform 0.6s}
+/* ── TRANSFER ── */
+#tf{position:absolute;bottom:96px;left:0;width:1380px;transform:translateY(120%);transition:transform 0.6s}
 #tf.show{transform:translateY(0)}
-.tfwrap{display:flex;align-items:stretch}
-.tftag{background:var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 12px;flex-shrink:0;min-width:100px}
-.tftm{font-family:var(--font-d);font-size:11px;font-weight:700;color:var(--dark);letter-spacing:2px}
-.tfts{font-family:var(--font-b);font-size:8px;color:rgba(0,0,0,0.6);letter-spacing:2px}
-.tfbody{background:var(--dark);flex:1;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-top:3px solid var(--gold);border-bottom:3px solid var(--gold)}
-.tfclub{display:flex;align-items:center;gap:8px}
-.tfbadge{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:8px;font-weight:700;color:#fff;flex-shrink:0}
-.tfcname{font-family:var(--font-b);font-size:10px;color:var(--silver);letter-spacing:1px}
-.tfctr{text-align:center;flex:1;padding:0 12px}
-.tfp{font-family:var(--font-d);font-size:18px;font-weight:700;color:#fff;letter-spacing:2px}
-.tfd{font-family:var(--font-b);font-size:10px;color:var(--gold);letter-spacing:2px;margin-top:2px}
-.tfarr{font-family:var(--font-d);font-size:20px;color:var(--gold);padding:0 4px}
-.tffee{background:var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 16px;flex-shrink:0;min-width:110px}
-.tffl{font-family:var(--font-b);font-size:8px;color:rgba(255,255,255,0.6);letter-spacing:2px}
-.tffa{font-family:var(--font-d);font-size:17px;font-weight:700;color:#fff;letter-spacing:1px}
+.tf-wrap{display:flex;align-items:stretch}
+.tf-tag{background:var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;flex-shrink:0;min-width:110px}
+.tf-main{font-family:var(--font-d);font-size:13px;font-weight:700;color:var(--dark);letter-spacing:2px}
+.tf-sub{font-family:var(--font-b);font-size:9px;color:rgba(0,0,0,0.6);letter-spacing:2px}
+.tf-body{background:var(--dark);flex:1;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-top:3px solid var(--gold);border-bottom:3px solid var(--gold)}
+.tf-club{display:flex;align-items:center;gap:10px}
+.tf-badge{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.tf-cname{font-family:var(--font-b);font-size:12px;color:var(--silver);letter-spacing:1px}
+.tf-centre{text-align:center;flex:1;padding:0 20px}
+.tf-player{font-family:var(--font-d);font-size:24px;font-weight:700;color:#fff;letter-spacing:2px}
+.tf-detail{font-family:var(--font-b);font-size:12px;color:var(--gold);letter-spacing:2px;margin-top:2px}
+.tf-arr{font-family:var(--font-d);font-size:26px;color:var(--gold);padding:0 6px}
+.tf-fee{background:var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 22px;flex-shrink:0;min-width:130px}
+.tf-fee-lbl{font-family:var(--font-b);font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:2px}
+.tf-fee-amt{font-family:var(--font-d);font-size:22px;font-weight:700;color:#fff;letter-spacing:1px}
 
-/* STAT WIPE - BOTTOM */
-#sw{position:absolute;bottom:50px;left:0;right:0;transform:translateY(120%);transition:transform 0.6s}
+/* ── STATS ── */
+#sw{position:absolute;bottom:96px;left:0;width:1380px;transform:translateY(120%);transition:transform 0.6s}
 #sw.show{transform:translateY(0)}
-.swwrap{display:flex;align-items:stretch}
-.swlbl{background:var(--red);padding:8px 14px;display:flex;align-items:center;min-width:160px;border-right:3px solid var(--gold)}
-.swlt{font-family:var(--font-d);font-size:15px;font-weight:700;color:#fff;letter-spacing:2px}
-.swbody{background:var(--dark);flex:1;padding:6px 16px;display:flex;align-items:center;gap:10px;border-top:3px solid var(--red);border-bottom:3px solid var(--red)}
-.switem{display:flex;flex-direction:column;align-items:center;min-width:65px}
-.swval{font-family:var(--font-d);font-size:20px;font-weight:700;color:#fff;line-height:1}
-.swval.g{color:var(--gold-light)}
-.swkey{font-family:var(--font-b);font-size:8px;color:var(--silver);letter-spacing:2px;margin-top:2px;text-transform:uppercase}
-.swdiv{width:1px;height:28px;background:rgba(255,255,255,0.12)}
+.sw-wrap{display:flex;align-items:stretch}
+.sw-lbl{background:var(--red);padding:10px 18px;display:flex;align-items:center;min-width:180px;border-right:3px solid var(--gold)}
+.sw-lbl-txt{font-family:var(--font-d);font-size:17px;font-weight:700;color:#fff;letter-spacing:2px}
+.sw-body{background:var(--dark);flex:1;padding:8px 20px;display:flex;align-items:center;gap:14px;border-top:3px solid var(--red);border-bottom:3px solid var(--red)}
+.sw-item{display:flex;flex-direction:column;align-items:center;min-width:72px}
+.sw-val{font-family:var(--font-d);font-size:24px;font-weight:700;color:#fff;line-height:1}
+.sw-val.g{color:var(--gold-light)}
+.sw-key{font-family:var(--font-b);font-size:9px;color:var(--silver);letter-spacing:2px;margin-top:2px;text-transform:uppercase}
+.sw-div{width:1px;height:34px;background:rgba(255,255,255,0.12)}
 
-/* GOAL FLASH */
+/* ── SKY SPORTS STYLE TICKER ── */
+#ticker{
+  position:absolute;bottom:36px;left:0;right:0;height:52px;
+  display:flex;align-items:stretch;
+  transform:translateY(120%);transition:transform 0.5s;
+}
+#ticker.show{transform:translateY(0)}
+.t-label{
+  background:var(--red);
+  display:flex;align-items:center;
+  padding:0 20px;
+  flex-shrink:0;
+  gap:8px;
+  min-width:180px;
+  border-right:3px solid var(--gold);
+}
+.t-label-icon{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:8px;font-weight:700;color:#fff;flex-shrink:0}
+.t-label-txt{font-family:var(--font-d);font-size:15px;font-weight:700;color:#fff;letter-spacing:2px;white-space:nowrap}
+.t-track{background:rgba(10,0,5,0.95);flex:1;overflow:hidden;display:flex;align-items:center;border-top:2px solid var(--red)}
+.t-scroll{display:flex;align-items:center;white-space:nowrap;font-family:var(--font-b);font-size:16px;font-weight:600;color:#fff;letter-spacing:0.5px;padding-left:40px;animation:tmove 45s linear infinite}
+@keyframes tmove{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.t-sep{color:var(--gold);margin:0 20px}
+.t-hl{color:var(--gold-light);font-weight:700}
+
+/* ── NAV BAR (bottom sport categories) ── */
+#navbar{
+  position:absolute;bottom:0;left:0;right:0;height:36px;
+  background:rgba(5,0,10,0.97);
+  border-top:2px solid var(--red);
+  display:flex;align-items:center;
+  transform:translateY(100%);transition:transform 0.5s 0.1s;
+}
+#navbar.show{transform:translateY(0)}
+.nav-items{display:flex;align-items:center;flex:1;height:100%}
+.nav-item{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-d);font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);
+  letter-spacing:2px;height:100%;border-right:1px solid rgba(255,255,255,0.08);
+  cursor:default;
+}
+.nav-item.active{color:#fff;background:rgba(200,16,46,0.2);border-bottom:2px solid var(--red)}
+.nav-ae{
+  background:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  padding:0 20px;
+  font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;letter-spacing:3px;
+  flex-shrink:0;height:100%;
+}
+
+/* ── GOAL FLASH ── */
 #gf{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0}
 #gf.show{animation:ganim 3.5s forwards}
 @keyframes ganim{0%{opacity:0}10%{opacity:1}75%{opacity:1}100%{opacity:0}}
-.gfbg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(200,16,46,0.5) 0%,transparent 70%)}
-.gfinner{text-align:center;animation:gscale 3.5s forwards;z-index:1}
+.gf-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(200,16,46,0.5) 0%,transparent 65%)}
+.gf-inner{text-align:center;animation:gscale 3.5s forwards;z-index:1}
 @keyframes gscale{0%{transform:scale(0.5)}15%{transform:scale(1.08)}25%{transform:scale(1)}80%{transform:scale(1)}100%{transform:scale(0.9)}}
-.gftxt{font-family:var(--font-d);font-size:140px;font-weight:700;color:var(--gold);letter-spacing:8px;line-height:1;text-shadow:0 0 60px rgba(212,160,23,0.7),0 4px 20px rgba(0,0,0,0.9)}
-.gfsc{font-family:var(--font-d);font-size:40px;font-weight:700;color:#fff;letter-spacing:4px;text-shadow:0 2px 12px rgba(0,0,0,0.9);margin-top:-8px}
-.gfmin{font-family:var(--font-b);font-size:18px;color:var(--silver);letter-spacing:4px;margin-top:4px}
+.gf-txt{font-family:var(--font-d);font-size:140px;font-weight:700;color:var(--gold);letter-spacing:8px;line-height:1;text-shadow:0 0 60px rgba(212,160,23,0.6),0 4px 20px rgba(0,0,0,0.9)}
+.gf-sc{font-family:var(--font-d);font-size:40px;font-weight:700;color:#fff;letter-spacing:4px;text-shadow:0 2px 12px rgba(0,0,0,0.9);margin-top:-8px}
+.gf-min{font-family:var(--font-b);font-size:18px;color:var(--silver);letter-spacing:4px;margin-top:4px}
 </style>
 </head>
 <body>
 
+<!-- ═══════════ CONTROL PANEL ═══════════ -->
 <div class="cp">
   <span class="cpl">AE</span>
-  <span id="apist"><span class="sdot" id="sdot"></span><span id="stxt" style="color:#888;font-size:9px">Connecting...</span></span>
+  <span><span class="sdot" id="sdot"></span><span id="stxt" style="color:#888;font-size:9px;font-family:Arial">Connecting...</span></span>
   <div class="cps"></div>
   <span class="cpl">OVERLAYS</span>
   <button class="cpb" onclick="tog('logo')">Logo</button>
   <button class="cpb" onclick="tog('livebadge')">LIVE</button>
-  <button class="cpb" onclick="tog('ticker')">Ticker</button>
+  <button class="cpb" onclick="togTicker()">Ticker</button>
+  <button class="cpb" onclick="togNav()">Nav Bar</button>
   <div class="cps"></div>
   <span class="cpl">LOWER THIRDS</span>
-  <button class="cpb" onclick="tog('lt')">Lower Third</button>
-  <button class="cpb" onclick="tog('bn')">Breaking</button>
-  <button class="cpb" onclick="tog('tf')">Transfer</button>
-  <button class="cpb" onclick="tog('sw')">Stats</button>
+  <button class="cpb" onclick="showOnly('lt')">Lower Third</button>
+  <button class="cpb" onclick="showOnly('bn')">Breaking</button>
+  <button class="cpb" onclick="showOnly('tf')">Transfer</button>
+  <button class="cpb" onclick="showOnly('sw')">Stats</button>
+  <button class="cpb" onclick="hideAll()">Clear</button>
   <div class="cps"></div>
   <span class="cpl">LIVE DATA</span>
-  <button class="cpb live" onclick="tog('lsp')">Score</button>
-  <button class="cpb live" onclick="tog('sp')">Table</button>
-  <button class="cpb live" onclick="tog('fp')">Fixtures</button>
-  <button class="cpb live" onclick="tog('sbug')">Score Bug</button>
+  <button class="cpb live-btn" onclick="tog('score-panel')">Score</button>
+  <button class="cpb live-btn" onclick="tog('table-panel')">Table</button>
+  <button class="cpb live-btn" onclick="tog('fixtures-panel')">Fixtures</button>
+  <button class="cpb live-btn" onclick="tog('sbug')">Score Bug</button>
   <div class="cps"></div>
   <span class="cpl">FX</span>
-  <button class="cpb" onclick="triggerGoal()">GOAL!</button>
-  <button class="cpb" onclick="refreshData()">Refresh</button>
+  <button class="cpb" onclick="triggerGoal()">⚽ GOAL!</button>
+  <button class="cpb" onclick="refreshData()">🔄 Data</button>
   <div class="cps"></div>
-  <input class="cpi" id="ltin" placeholder="Presenter name..." oninput="updateLT()" style="width:140px">
-  <input class="cpi" id="ltri" placeholder="Role..." oninput="updateLT()" style="width:130px">
-  <input class="cpi" id="bni" placeholder="Breaking news headline..." oninput="updateBN()" style="width:220px">
-  <input class="cpi" id="tfpi" placeholder="Player name..." oninput="updateTF()" style="width:120px">
-  <input class="cpi" id="tffei" placeholder="Fee e.g. £65M..." oninput="updateTF()" style="width:100px">
+  <input class="cpi" id="ltin" placeholder="Presenter name..." oninput="updateLT()" style="width:130px">
+  <input class="cpi" id="ltri" placeholder="Role/context..." oninput="updateLT()" style="width:120px">
+  <input class="cpi" id="bni" placeholder="Breaking news..." oninput="updateBN()" style="width:200px">
+  <input class="cpi" id="tfpi" placeholder="Player name..." oninput="updateTF()" style="width:110px">
+  <input class="cpi" id="tffei" placeholder="Fee e.g. £65M" oninput="updateTF()" style="width:90px">
+  <input class="cpi" id="navactive" placeholder="Active sport..." oninput="updateNav()" style="width:110px">
 </div>
 
+<!-- ═══════════ OBS CANVAS ═══════════ -->
 <div id="canvas">
 
-  <!-- LOGO TOP LEFT -->
-  <div id="logo" class="show">
-    <div class="logo-box">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <!-- AE LOGO -->
+    <div id="logo" class="show">
       <div class="logo-c">AE</div>
       <div><div class="logo-main">ANFIELD</div><div class="logo-sub">EXPRESS</div></div>
     </div>
+    <!-- LIVE BADGE -->
+    <div id="livebadge" class="show">
+      <div class="ldot"></div>
+      <div class="ltxt">LIVE</div>
+    </div>
   </div>
 
-  <!-- LIVE BADGE TOP RIGHT -->
-  <div id="livebadge" class="show">
-    <div class="ldot"></div>
-    <div class="ltxt">LIVE</div>
-  </div>
-
-  <!-- SCORE BUG BELOW LIVE BADGE -->
+  <!-- SCORE BUG -->
   <div id="sbug">
-    <div class="sbwrap">
-      <div class="sbteam"><div class="sbbadge" style="background:var(--red)">LFC</div><div class="sbname">LIVERPOOL</div></div>
-      <div class="sbscore"><span id="sbh">0</span><span style="color:rgba(255,255,255,0.35);font-size:12px">–</span><span id="sba">0</span></div>
-      <div class="sbteam"><div class="sbbadge" id="sbob" style="background:#555">OPP</div><div class="sbname" id="sbon">OPPONENT</div></div>
-      <div class="sbtime" id="sbt">LIVE</div>
+    <div class="sb-wrap">
+      <div class="sb-team"><div class="sb-badge" style="background:var(--red)">LFC</div><div class="sb-name">LIVERPOOL</div></div>
+      <div class="sb-score"><span id="sbh">0</span><span style="color:rgba(255,255,255,0.4);font-size:11px">–</span><span id="sba">0</span></div>
+      <div class="sb-team"><div class="sb-badge" id="sbob" style="background:#555">OPP</div><div class="sb-name" id="sbon">OPPONENT</div></div>
+      <div class="sb-time" id="sbt">LIVE</div>
     </div>
   </div>
 
-  <!-- TABLE RIGHT SIDE -->
-  <div id="sp">
-    <div class="spw">
-      <div class="sph"><span class="spti">PREMIER LEAGUE TABLE</span><span style="font-family:var(--font-b);font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:1px" id="spupd">LOADING</span></div>
-      <div class="spr hrw"><span>#</span><span>TEAM</span><span>P</span><span>W</span><span>D</span><span>PTS</span></div>
-      <div id="sprows"><div class="spr"><span class="sppos">—</span><span class="spteam">Loading...</span><span>—</span><span>—</span><span>—</span><span class="sppts">—</span></div></div>
-    </div>
-  </div>
+  <!-- RIGHT PANELS (Sky Sports style) -->
+  <div id="right-panels">
 
-  <!-- FIXTURES RIGHT SIDE -->
-  <div id="fp" style="top:130px">
-    <div class="fpw">
-      <div class="fph"><div class="fpht">LIVERPOOL FC · UPCOMING FIXTURES</div></div>
-      <div id="fprows"><div class="fpm"><div class="fpts">Loading fixtures...</div></div></div>
-    </div>
-  </div>
-
-  <!-- LIVE SCORE PANEL RIGHT SIDE -->
-  <div id="lsp">
-    <div class="lspw">
-      <div class="lsph"><span class="lspc" id="lspc">PREMIER LEAGUE</span><span class="lsps" id="lsps">LOADING</span></div>
-      <div class="lspb">
-        <div class="lspt"><div class="lspbadge" style="background:var(--red)" id="lsphl">LFC</div><div class="lsptn" id="lsphn">LIVERPOOL</div></div>
-        <div class="lspsb"><div class="lspscore"><span id="lsphs">—</span><span class="lspss">–</span><span id="lspas">—</span></div><div class="lsptime" id="lsptm">—</div></div>
-        <div class="lspt"><div class="lspbadge" id="lspal" style="background:#555">OPP</div><div class="lsptn" id="lspan">OPPONENT</div></div>
+    <!-- SCORE PANEL -->
+    <div id="score-panel">
+      <div class="rp-header"><span class="rp-title" id="lspc">PREMIER LEAGUE</span><span class="rp-sub" id="lsps">LOADING</span></div>
+      <div class="sp-body">
+        <div class="sp-team"><div class="sp-badge" style="background:var(--red)" id="lsphl">LFC</div><div class="sp-name" id="lsphn">LIVERPOOL</div></div>
+        <div class="sp-score-block">
+          <div class="sp-score"><span id="lsphs">—</span><span class="sp-sep">–</span><span id="lspas">—</span></div>
+          <div class="sp-time" id="lsptm">—</div>
+        </div>
+        <div class="sp-team"><div class="sp-badge" id="lspal" style="background:#555">OPP</div><div class="sp-name" id="lspan">OPPONENT</div></div>
       </div>
-      <div class="lspsc" id="lspsc"><div class="lspscs">Waiting for match data...</div></div>
-      <div class="lspf">ANFIELD EXPRESS · LIVE</div>
+      <div class="sp-scorers" id="lspsc"><div class="sp-scorer">Waiting for match data...</div></div>
     </div>
+
+    <!-- TABLE PANEL -->
+    <div id="table-panel">
+      <div class="rp-header"><span class="rp-title">PREMIER LEAGUE</span><span class="rp-sub" id="spupd">LOADING</span></div>
+      <div class="tp-row hdr"><span>#</span><span>CLUB</span><span>P</span><span>W</span><span>D</span><span>PTS</span></div>
+      <div id="sprows"><div class="tp-row"><span class="tp-pos">—</span><span class="tp-team">Loading...</span><span>—</span><span>—</span><span>—</span><span class="tp-pts">—</span></div></div>
+    </div>
+
+    <!-- FIXTURES PANEL -->
+    <div id="fixtures-panel">
+      <div class="rp-header"><span class="rp-title">LFC FIXTURES</span><span class="rp-sub">UPCOMING</span></div>
+      <div id="fprows"><div class="fp-match"><div class="fp-teams">Loading fixtures...</div></div></div>
+    </div>
+
   </div>
 
-  <!-- TICKER BOTTOM -->
-  <div id="ticker" class="show">
-    <div class="tbrand"><div class="tae">AE</div><div class="tname">ANFIELD<br>EXPRESS</div></div>
-    <div class="ttrack"><div class="tscroll" id="tinner">
-      <span class="th">LIVE:</span>&nbsp;Loading latest Liverpool FC news...&nbsp;<span class="ts">★</span>&nbsp;
-      <span class="th">LIVE:</span>&nbsp;Loading latest Liverpool FC news...&nbsp;<span class="ts">★</span>&nbsp;
-    </div></div>
-  </div>
-
-  <!-- LOWER THIRD BOTTOM LEFT -->
+  <!-- LOWER THIRD -->
   <div id="lt">
-    <div class="ltwrap" id="ltwrap">
-      <div class="lttop"><div class="ltacc"></div><div class="ltname" id="ltnd">PRESENTER NAME</div></div>
-      <div class="ltbot"><div class="ltrole" id="ltrd">ANFIELD EXPRESS · LIVE NEWS</div></div>
+    <div class="lt-wrap" id="ltwrap">
+      <div class="lt-top"><div class="lt-acc"></div><div class="lt-name" id="ltnd">PRESENTER NAME</div></div>
+      <div class="lt-bot"><div class="lt-role" id="ltrd">ANFIELD EXPRESS · LIVE NEWS</div></div>
     </div>
   </div>
 
-  <!-- BREAKING NEWS BOTTOM -->
+  <!-- BREAKING NEWS -->
   <div id="bn">
-    <div class="bnwrap">
-      <div class="bntag"><div class="bnring"></div><div class="bntxt">BREAKING<br>NEWS</div></div>
-      <div class="bnbody"><div class="bnhl" id="bnhl">Liverpool <span>agree £65m deal</span> for new midfielder</div><div class="bnsrc">ANFIELD EXPRESS EXCLUSIVE · CONFIRMED</div></div>
-      <div class="bnend"><div class="bnae">AE</div></div>
+    <div class="bn-wrap">
+      <div class="bn-tag"><div class="bn-ring"></div><div class="bn-tag-txt">BREAKING<br>NEWS</div></div>
+      <div class="bn-body"><div class="bn-hl" id="bnhl">Liverpool <span>agree £65m deal</span> for new midfielder</div><div class="bn-src">ANFIELD EXPRESS EXCLUSIVE · CONFIRMED</div></div>
+      <div class="bn-end"><div class="bn-ae">AE</div></div>
     </div>
   </div>
 
-  <!-- TRANSFER BOTTOM -->
+  <!-- TRANSFER -->
   <div id="tf">
-    <div class="tfwrap">
-      <div class="tftag"><div class="tftm">TRANSFER</div><div class="tfts">UPDATE</div></div>
-      <div class="tfbody">
-        <div class="tfclub"><div class="tfbadge" style="background:#0057B8" id="tffromb">BVB</div><div class="tfcname" id="tffromn">DORTMUND</div></div>
-        <div class="tfarr">→</div>
-        <div class="tfctr"><div class="tfp" id="tfpname">F. WIRTZ</div><div class="tfd" id="tfpdet">ATTACKING MID</div></div>
-        <div class="tfarr">→</div>
-        <div class="tfclub"><div class="tfbadge" style="background:var(--red)">LFC</div><div class="tfcname">LIVERPOOL</div></div>
+    <div class="tf-wrap">
+      <div class="tf-tag"><div class="tf-main">TRANSFER</div><div class="tf-sub">UPDATE</div></div>
+      <div class="tf-body">
+        <div class="tf-club"><div class="tf-badge" style="background:#0057B8">BVB</div><div class="tf-cname">DORTMUND</div></div>
+        <div class="tf-arr">→</div>
+        <div class="tf-centre"><div class="tf-player" id="tfpname">F. WIRTZ</div><div class="tf-detail" id="tfpdet">ATTACKING MID · GERMANY</div></div>
+        <div class="tf-arr">→</div>
+        <div class="tf-club"><div class="tf-badge" style="background:var(--red)">LFC</div><div class="tf-cname">LIVERPOOL</div></div>
       </div>
-      <div class="tffee"><div class="tffl">REPORTED FEE</div><div class="tffa" id="tffeeamt">£100M</div></div>
+      <div class="tf-fee"><div class="tf-fee-lbl">REPORTED FEE</div><div class="tf-fee-amt" id="tffeeamt">£100M</div></div>
     </div>
   </div>
 
-  <!-- STAT WIPE BOTTOM -->
+  <!-- STATS WIPE -->
   <div id="sw">
-    <div class="swwrap">
-      <div class="swlbl"><div class="swlt">MATCH STATS</div></div>
-      <div class="swbody">
-        <div class="switem"><div class="swval g">68%</div><div class="swkey">POSSESSION</div></div><div class="swdiv"></div>
-        <div class="switem"><div class="swval">18</div><div class="swkey">SHOTS</div></div><div class="swdiv"></div>
-        <div class="switem"><div class="swval g">7</div><div class="swkey">ON TARGET</div></div><div class="swdiv"></div>
-        <div class="switem"><div class="swval">4</div><div class="swkey">CORNERS</div></div><div class="swdiv"></div>
-        <div class="switem"><div class="swval">1</div><div class="swkey">YELLOW</div></div><div class="swdiv"></div>
-        <div class="switem"><div class="swval g">87%</div><div class="swkey">PASS ACC</div></div>
+    <div class="sw-wrap">
+      <div class="sw-lbl"><div class="sw-lbl-txt">MATCH STATS</div></div>
+      <div class="sw-body">
+        <div class="sw-item"><div class="sw-val g">68%</div><div class="sw-key">POSSESSION</div></div><div class="sw-div"></div>
+        <div class="sw-item"><div class="sw-val">18</div><div class="sw-key">SHOTS</div></div><div class="sw-div"></div>
+        <div class="sw-item"><div class="sw-val g">7</div><div class="sw-key">ON TARGET</div></div><div class="sw-div"></div>
+        <div class="sw-item"><div class="sw-val">4</div><div class="sw-key">CORNERS</div></div><div class="sw-div"></div>
+        <div class="sw-item"><div class="sw-val">1</div><div class="sw-key">YELLOW</div></div><div class="sw-div"></div>
+        <div class="sw-item"><div class="sw-val g">87%</div><div class="sw-key">PASS ACC</div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- TICKER -->
+  <div id="ticker" class="show">
+    <div class="t-label">
+      <div class="t-label-icon">AE</div>
+      <div class="t-label-txt" id="ticker-label">TOP STORY</div>
+    </div>
+    <div class="t-track">
+      <div class="t-scroll" id="tinner">
+        <span class="t-hl">LIVE:</span>&nbsp;Loading latest Liverpool FC news...&nbsp;<span class="t-sep">★</span>&nbsp;
+        <span class="t-hl">LIVE:</span>&nbsp;Loading latest Liverpool FC news...&nbsp;<span class="t-sep">★</span>&nbsp;
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV BAR -->
+  <div id="navbar" class="show">
+    <div class="nav-ae">ANFIELD EXPRESS</div>
+    <div class="nav-items" id="nav-items">
+      <div class="nav-item active" data-sport="LFC NEWS">LFC NEWS</div>
+      <div class="nav-item" data-sport="TRANSFERS">TRANSFERS</div>
+      <div class="nav-item" data-sport="PREMIER LEAGUE">PREMIER LEAGUE</div>
+      <div class="nav-item" data-sport="CHAMPIONS LEAGUE">CHAMPIONS LEAGUE</div>
+      <div class="nav-item" data-sport="MATCH ANALYSIS">MATCH ANALYSIS</div>
+      <div class="nav-item" data-sport="LIVE">LIVE</div>
     </div>
   </div>
 
   <!-- GOAL FLASH -->
-  <div id="gf"><div class="gfbg"></div><div class="gfinner"><div class="gftxt">GOAL!</div><div class="gfsc" id="gfn">SALAH</div><div class="gfmin" id="gfm">45' · PREMIER LEAGUE</div></div></div>
+  <div id="gf">
+    <div class="gf-bg"></div>
+    <div class="gf-inner">
+      <div class="gf-txt">GOAL!</div>
+      <div class="gf-sc" id="gfn">SALAH</div>
+      <div class="gf-min" id="gfm">45' · PREMIER LEAGUE</div>
+    </div>
+  </div>
 
 </div>
 
 <script>
 const AK='16fb0a9e09a546a880fac7b9a9637202',LID=64,PL=2021,BASE='https://api.football-data.org/v4',H={'X-Auth-Token':AK};
 
-function tog(id){
-  const el=document.getElementById(id);
-  el.classList.toggle('show');
+// ── TOGGLE ──
+function tog(id){document.getElementById(id).classList.toggle('show')}
+
+// ── TICKER ──
+let tickerOn=true;
+function togTicker(){
+  tickerOn=!tickerOn;
+  document.getElementById('ticker').classList.toggle('show',tickerOn);
 }
 
+// ── NAV BAR ──
+let navOn=true;
+function togNav(){
+  navOn=!navOn;
+  document.getElementById('navbar').classList.toggle('show',navOn);
+}
+
+// ── SHOW ONLY ONE LOWER THIRD ──
+const lowers=['lt','bn','tf','sw'];
+function showOnly(id){
+  lowers.forEach(l=>{
+    const el=document.getElementById(l);
+    if(l===id){el.classList.toggle('show')}
+    else{el.classList.remove('show')}
+  });
+}
+function hideAll(){lowers.forEach(l=>document.getElementById(l).classList.remove('show'))}
+
+// ── UPDATE LOWER THIRD ──
 function updateLT(){
   const n=document.getElementById('ltin').value,r=document.getElementById('ltri').value;
   if(n)document.getElementById('ltnd').textContent=n.toUpperCase();
   if(r)document.getElementById('ltrd').textContent=r.toUpperCase();
   const w=document.getElementById('ltwrap');
-  w.classList.remove('show');
-  setTimeout(()=>w.classList.add('show'),50);
+  w.classList.remove('show');setTimeout(()=>w.classList.add('show'),50);
 }
 
+// ── UPDATE BREAKING ──
 function updateBN(){
   const t=document.getElementById('bni').value;
   if(t)document.getElementById('bnhl').textContent=t;
 }
 
+// ── UPDATE TRANSFER ──
 function updateTF(){
-  const p=document.getElementById('tfpi').value;
-  const f=document.getElementById('tffei').value;
+  const p=document.getElementById('tfpi').value,f=document.getElementById('tffei').value;
   if(p)document.getElementById('tfpname').textContent=p.toUpperCase();
   if(f)document.getElementById('tffeeamt').textContent=f.toUpperCase();
 }
 
+// ── UPDATE NAV ──
+function updateNav(){
+  const v=document.getElementById('navactive').value.toUpperCase();
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active',el.dataset.sport===v);
+  });
+}
+
+// ── GOAL FLASH ──
 function triggerGoal(){
   const e=document.getElementById('gf');
-  e.classList.remove('show');
-  void e.offsetWidth;
+  e.classList.remove('show');void e.offsetWidth;
   e.classList.add('show');
   setTimeout(()=>e.classList.remove('show'),3500);
 }
 
+// ── API STATUS ──
 function setStat(ok,msg){
   document.getElementById('sdot').className='sdot '+(ok?'ok':'err');
   document.getElementById('stxt').style.color=ok?'#00cc00':'#cc4444';
   document.getElementById('stxt').textContent=msg;
 }
 
-// Position panels so they don't overlap
-function positionPanels(){
-  const spEl=document.getElementById('sp');
-  const fpEl=document.getElementById('fp');
-  const lspEl=document.getElementById('lsp');
-  const spHeight=spEl.offsetHeight;
-  fpEl.style.top=(130+spHeight+10)+'px';
-  lspEl.style.top='130px';
-}
-
+// ── FETCH STANDINGS ──
 async function fetchStandings(){
   try{
     const r=await fetch(`${BASE}/competitions/${PL}/standings`,{headers:H});
     if(!r.ok)throw new Error(r.status);
     const d=await r.json(),t=d.standings[0].table;
     const lp=t.find(x=>x.team.id===LID)?.position||1;
-    const s=Math.max(0,lp-3),rows=t.slice(s,s+7);
+    const s=Math.max(0,lp-3),rows=t.slice(s,s+8);
     document.getElementById('sprows').innerHTML=rows.map(x=>{
       const is=x.team.id===LID,n=x.team.shortName||x.team.name;
-      return`<div class="spr${is?' lfc':''}"><span class="sppos">${x.position}</span><span class="spteam">${n}</span><span>${x.playedGames}</span><span>${x.won}</span><span>${x.draw}</span><span class="sppts">${x.points}</span></div>`
+      return`<div class="tp-row${is?' lfc':''}"><span class="tp-pos">${x.position}</span><span class="tp-team">${n}</span><span>${x.playedGames}</span><span>${x.won}</span><span>${x.draw}</span><span class="tp-pts">${x.points}</span></div>`
     }).join('');
     document.getElementById('spupd').textContent='LIVE';
     setStat(true,'API Live ✓');
-    setTimeout(positionPanels,100);
-  }catch(e){setStat(false,'Error: '+e.message)}
+  }catch(e){setStat(false,''+e.message)}
 }
 
+// ── FETCH FIXTURES ──
 async function fetchFixtures(){
   try{
     const td=new Date().toISOString().split('T')[0],fu=new Date(Date.now()+60*86400000).toISOString().split('T')[0];
-    const r=await fetch(`${BASE}/teams/${LID}/matches?status=SCHEDULED&dateFrom=${td}&dateTo=${fu}&limit=5`,{headers:H});
+    const r=await fetch(`${BASE}/teams/${LID}/matches?status=SCHEDULED&dateFrom=${td}&dateTo=${fu}&limit=6`,{headers:H});
     if(!r.ok)throw new Error(r.status);
-    const d=await r.json(),m=d.matches.slice(0,5);
-    if(!m.length){document.getElementById('fprows').innerHTML='<div class="fpm"><div class="fpts" style="color:var(--silver)">No upcoming fixtures</div></div>';return}
+    const d=await r.json(),m=d.matches.slice(0,6);
+    if(!m.length){document.getElementById('fprows').innerHTML='<div class="fp-match"><div class="fp-teams" style="color:var(--silver)">No upcoming fixtures</div></div>';return}
     document.getElementById('fprows').innerHTML=m.map((x,i)=>{
       const h=x.homeTeam.shortName||x.homeTeam.name,a=x.awayTeam.shortName||x.awayTeam.name;
       const dt=new Date(x.utcDate),ds=dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}),ts=dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      return`<div class="fpm${i===0?' next':''}"><div><div class="fpts">${h} <span>vs</span> ${a}</div></div><div><div class="fpdate">${ds} · ${ts}</div><div class="fpcomp">${x.competition.name}</div></div></div>`
+      return`<div class="fp-match${i===0?' next':''}"><div><div class="fp-teams">${h} <span>vs</span> ${a}</div></div><div class="fp-info"><div class="fp-date">${ds} · ${ts}</div><div class="fp-comp">${x.competition.name}</div></div></div>`
     }).join('');
+    // Update ticker
     const n=m[0],nh=n.homeTeam.shortName||n.homeTeam.name,na=n.awayTeam.shortName||n.awayTeam.name;
     const nd=new Date(n.utcDate),nds=nd.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
     const items=[
-      `<span class="th">NEXT MATCH:</span>&nbsp;${nh} vs ${na} · ${nds}`,
-      `Liverpool FC · Anfield Express Live Coverage`,
-      `<span class="th">ANFIELD EXPRESS</span>&nbsp;· Your #1 Liverpool FC News Channel`,
-      `Subscribe for the latest Reds news, transfers and match analysis`,
-      `<span class="th">NEXT MATCH:</span>&nbsp;${nh} vs ${na} · ${nds}`,
-      `Liverpool FC · Anfield Express Live Coverage`,
-      `<span class="th">ANFIELD EXPRESS</span>&nbsp;· Your #1 Liverpool FC News Channel`,
-      `Subscribe for the latest Reds news, transfers and match analysis`
+      `<span class="t-hl">NEXT MATCH:</span>&nbsp;${nh} vs ${na} · ${nds}`,
+      `Liverpool FC · Live on Anfield Express`,
+      `<span class="t-hl">ANFIELD EXPRESS</span>&nbsp;· Your #1 Liverpool FC News Channel`,
+      `Subscribe now for live transfers, match analysis and breaking LFC news`,
+      `<span class="t-hl">NEXT MATCH:</span>&nbsp;${nh} vs ${na} · ${nds}`,
+      `Liverpool FC · Live on Anfield Express`,
+      `<span class="t-hl">ANFIELD EXPRESS</span>&nbsp;· Your #1 Liverpool FC News Channel`,
+      `Subscribe now for live transfers, match analysis and breaking LFC news`
     ];
-    document.getElementById('tinner').innerHTML=items.map(x=>`${x}&nbsp;<span class="ts">★</span>&nbsp;`).join('');
-    setTimeout(positionPanels,100);
+    document.getElementById('tinner').innerHTML=items.map(x=>`${x}&nbsp;<span class="t-sep">★</span>&nbsp;`).join('');
   }catch(e){console.error(e)}
 }
 
+// ── FETCH SCORE ──
 async function fetchScore(){
   try{
     const td=new Date().toISOString().split('T')[0],yd=new Date(Date.now()-2*86400000).toISOString().split('T')[0];
@@ -437,7 +572,7 @@ async function fetchScore(){
     const d=await r.json(),m=d.matches;
     if(!m.length){document.getElementById('lsps').textContent='NO MATCH';return}
     const x=m[m.length-1],ih=x.homeTeam.id===LID,op=ih?x.awayTeam:x.homeTeam;
-    const hs=x.score.fullTime.home??x.score.halfTime.home??0,as=x.score.fullTime.away??x.score.halfTime.away??0;
+    const hs=x.score.fullTime.home??x.score.halfTime.home??0,as2=x.score.fullTime.away??x.score.halfTime.away??0;
     document.getElementById('lsphn').textContent=ih?'LIVERPOOL':(op.shortName||op.name).toUpperCase();
     document.getElementById('lspan').textContent=ih?(op.shortName||op.name).toUpperCase():'LIVERPOOL';
     document.getElementById('lsphl').style.background=ih?'#C8102E':'#555';
@@ -445,13 +580,13 @@ async function fetchScore(){
     document.getElementById('lsphl').textContent=ih?'LFC':(op.tla||'OPP');
     document.getElementById('lspal').textContent=ih?(op.tla||'OPP'):'LFC';
     document.getElementById('lsphs').textContent=hs;
-    document.getElementById('lspas').textContent=as;
+    document.getElementById('lspas').textContent=as2;
     document.getElementById('lspc').textContent=(x.competition.name||'MATCH').toUpperCase();
     const sm={'FINISHED':'FULL TIME','IN_PLAY':'LIVE','HALFTIME':'HALF TIME','PAUSED':'HT','SCHEDULED':'UPCOMING','TIMED':'UPCOMING'};
     document.getElementById('lsps').textContent=sm[x.status]||x.status;
     document.getElementById('lsptm').textContent=new Date(x.utcDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    document.getElementById('sbh').textContent=ih?hs:as;
-    document.getElementById('sba').textContent=ih?as:hs;
+    document.getElementById('sbh').textContent=ih?hs:as2;
+    document.getElementById('sba').textContent=ih?as2:hs;
     document.getElementById('sbon').textContent=(op.shortName||op.name).toUpperCase().substring(0,8);
     document.getElementById('sbob').textContent=op.tla||'OPP';
     document.getElementById('sbt').textContent=sm[x.status]||'FT';
@@ -463,15 +598,23 @@ async function refreshData(){
   await Promise.all([fetchStandings(),fetchFixtures(),fetchScore()]);
 }
 
+// ── KEYBOARD SHORTCUTS ──
 document.addEventListener('keydown',e=>{
-  const m={l:'logo',v:'livebadge',t:'ticker',n:'lt',b:'bn',x:'tf',r:'lsp',p:'sp',f:'fp',s:'sbug',m:'sw'};
-  if(m[e.key])tog(m[e.key]);
+  const map={l:'logo',v:'livebadge',s:'sbug'};
+  if(map[e.key])tog(map[e.key]);
   if(e.key==='g')triggerGoal();
   if(e.key==='R')refreshData();
+  if(e.key==='1')showOnly('lt');
+  if(e.key==='2')showOnly('bn');
+  if(e.key==='3')showOnly('tf');
+  if(e.key==='4')showOnly('sw');
+  if(e.key==='0')hideAll();
 });
 
-if(new URLSearchParams(window.location.search).get('obs')==='true')document.body.classList.add('obs');
+// ── OBS MODE ──
+if(new URLSearchParams(window.location.search).get('obs')==='true')document.body.classList.add('obs-mode');
 
+// ── INIT ──
 refreshData();
 setInterval(refreshData,60000);
 </script>
